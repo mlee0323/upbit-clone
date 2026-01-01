@@ -1,0 +1,152 @@
+// Prisma schema for Upbit Clone
+// Maps to existing PostgreSQL tables
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int       @id @default(autoincrement())
+  email          String    @unique
+  hashedPassword String    @map("hashed_password")
+  name           String
+  isActive       Boolean   @default(true) @map("is_active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  balances        UserBalance[]
+  krwTransactions KrwTransaction[]
+  orders          Order[]
+  trades          Trade[]
+  favorites       Favorite[]
+  posts           Post[]
+  comments        Comment[]
+
+  @@map("users")
+}
+
+model UserBalance {
+  id          Int     @id @default(autoincrement())
+  userId      Int     @map("user_id")
+  currency    String
+  balance     Decimal @default(0) @db.Decimal(30, 10)
+  locked      Decimal @default(0) @db.Decimal(30, 10)
+  avgBuyPrice Decimal @default(0) @map("avg_buy_price") @db.Decimal(30, 10)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, currency])
+  @@map("user_balances")
+}
+
+model KrwTransaction {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  type      String
+  amount    Decimal  @db.Decimal(20, 2)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("krw_transactions")
+}
+
+model Order {
+  id              Int      @id @default(autoincrement())
+  userId          Int      @map("user_id")
+  market          String
+  side            String
+  ordType         String   @map("ord_type")
+  price           Decimal? @db.Decimal(30, 10)
+  volume          Decimal  @db.Decimal(30, 10)
+  remainingVolume Decimal  @map("remaining_volume") @db.Decimal(30, 10)
+  state           String   @default("wait")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trades Trade[]
+
+  @@index([userId, state])
+  @@index([market, side, state])
+  @@map("orders")
+}
+
+model Trade {
+  id        Int      @id @default(autoincrement())
+  orderId   Int      @map("order_id")
+  userId    Int      @map("user_id")
+  market    String
+  side      String
+  price     Decimal  @db.Decimal(30, 10)
+  volume    Decimal  @db.Decimal(30, 10)
+  funds     Decimal  @db.Decimal(30, 10)
+  fee       Decimal  @db.Decimal(30, 10)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("trades")
+}
+
+model Favorite {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  market    String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, market])
+  @@map("favorites")
+}
+
+model Post {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  category  String
+  title     String   @db.VarChar(200)
+  content   String?
+  views     Int      @default(0)
+  likes     Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments Comment[]
+
+  @@map("posts")
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  postId    Int      @map("post_id")
+  userId    Int      @map("user_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}
+
+// Candle (OHLCV) data for charts - TimescaleDB hypertable
+// After migration: SELECT create_hypertable('candles', 'time');
+model Candle {
+  time     DateTime @db.Timestamptz
+  market   String   @db.VarChar(20)
+  interval String   @db.VarChar(10) // 'M1', 'M5', 'M15', 'M60', 'D', 'W', 'Mo'
+  open     Decimal  @db.Decimal(30, 10)
+  high     Decimal  @db.Decimal(30, 10)
+  low      Decimal  @db.Decimal(30, 10)
+  close    Decimal  @db.Decimal(30, 10)
+  volume   Decimal  @db.Decimal(30, 10)
+
+  @@id([market, interval, time])
+  @@index([market, interval])
+  @@map("candles")
+}

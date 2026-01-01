@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: upbit
+  labels:
+    app.kubernetes.io/name: upbit
+    app.kubernetes.io/part-of: upbit-clone

@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: upbit-config
+  namespace: upbit
+  labels:
+    app.kubernetes.io/name: upbit
+data:
+  # Database connection
+  DB_HOST: "db-master-0.db-headless.database.svc.cluster.local"
+  DB_PORT: "5432"
+  DB_NAME: "upbit"
+
+  # Redis connection
+  REDIS_HOST: "redis-master.database.svc.cluster.local"
+  REDIS_PORT: "6379"
+
+  # Application settings
+  PORT: "8000"
+  USE_REAL_DB: "true"
+  CORS_ORIGINS: "http://localhost:3000,http://localhost:5173,http://upbit-frontend.upbit.svc.cluster.local"
+
+  # External API
+  UPBIT_API_URL: "https://api.upbit.com/v1"

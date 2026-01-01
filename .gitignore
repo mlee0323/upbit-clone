@@ -1,0 +1,20 @@
+.env
+*.pem
+*.key
+node_modules/
+dist/
+.idea/
+.vscode/
+
+# Documentation (generated)
+docs/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+
+# Logs
+*.log

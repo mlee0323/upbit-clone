@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: upbit-backend
+  namespace: upbit
+  labels:
+    app.kubernetes.io/name: upbit-backend
+    app.kubernetes.io/component: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: upbit-backend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: upbit-backend
+        app.kubernetes.io/component: backend
+    spec:
+      # Pin to worker-1 node (Backend workload)
+      nodeSelector:
+        role: backend
+
+      containers:
+        - name: backend
+          image: your-registry/upbit-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+              name: http
+
+          envFrom:
+            - configMapRef:
+                name: upbit-config
+            - secretRef:
+                name: upbit-secrets
+
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+
+      restartPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: upbit-backend
+  namespace: upbit
+  labels:
+    app.kubernetes.io/name: upbit-backend
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: upbit-backend
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+      protocol: TCP
