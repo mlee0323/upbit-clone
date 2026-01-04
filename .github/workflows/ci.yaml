@@ -55,3 +55,23 @@ jobs:
             ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
           cache-from: type=registry,ref=${{ env.FRONTEND_IMAGE }}:buildcache
           cache-to: type=registry,ref=${{ env.FRONTEND_IMAGE }}:buildcache,mode=max
+
+      - name: Update Kubernetes Manifest
+        run: |
+          # 1. Git 설정 (봇 이름으로 설정)
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
+          # 2. 백엔드 배포 파일 수정 (sed 명령어로 이미지 태그 교체)
+          # 'skdtmr/upbit-clone-back:어쩌구' 부분을 찾아서 'skdtmr/upbit-clone-back:새로운해시'로 바꿈
+          sed -i "s|image: ${{ env.BACKEND_IMAGE }}:.*|image: ${{ env.BACKEND_IMAGE }}:${{ github.sha }}|g" k8s/backend-deployment.yaml
+
+          # (프론트엔드도 있다면 여기서 똑같이 sed 명령어로 수정)
+          # sed -i "s|image: ${{ env.FRONTEND_IMAGE }}:.*|image: ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}|g" k8s/frontend-deployment.yaml
+
+          # 3. 변경 사항 커밋 및 푸시
+          git add k8s/
+
+          # 변경사항이 있을 때만 커밋 (에러 방지)
+          git commit -m "Update image tag to ${{ github.sha }} [skip ci]" || echo "No changes to commit"
+          git push
