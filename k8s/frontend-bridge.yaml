@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: upbit-backend # [중요] Nginx 설정에 적힌 이름과 똑같아야 함
+  namespace: frontend # [중요] 프론트엔드와 같은 네임스페이스
+spec:
+  type: ExternalName
+  # 실제 백엔드가 있는 전체 주소(FQDN)로 연결
+  externalName: upbit-backend.backend.svc.cluster.local

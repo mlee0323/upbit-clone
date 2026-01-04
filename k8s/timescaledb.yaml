@@ -1,0 +1,203 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-storage
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+---
+# 2. PV 설정 (변경 없음)
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: timescale-master-pv
+spec:
+  capacity:
+    storage: 20Gi # 용량 확장 반영
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-storage
+  claimRef:
+    namespace: database
+    name: master-data-db-master-0
+  local:
+    path: /data/db-master
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: role
+              operator: In
+              values:
+                - db-master
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: timescale-slave-pv
+spec:
+  capacity:
+    storage: 20Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-storage
+  claimRef:
+    namespace: database
+    name: slave-data-db-slave-0
+  local:
+    path: /data/db-slave
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: role
+              operator: In
+              values:
+                - db-slave
+---
+# 3. Headless Service (DNS 통신의 핵심)
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-headless
+  namespace: database
+spec:
+  clusterIP: None # Headless 모드
+  selector:
+    app: db-cluster
+  ports:
+    - port: 5432
+      name: postgres
+---
+# 4. Master StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: db-master
+  namespace: database
+spec:
+  serviceName: "db-headless"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db-cluster
+      role: master
+  template:
+    metadata:
+      labels:
+        app: db-cluster
+        role: master
+    spec:
+      # hostNetwork: true  <-- 삭제! (이제 격리된 파드 네트워크 사용)
+      nodeSelector:
+        role: db-master
+      containers:
+        - name: master
+          image: timescale/timescaledb:latest-pg17
+          ports:
+            - containerPort: 5432 # 명시적으로 포트 선언
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: timescale-secret
+                  key: pg-root-password
+          command: ["bash", "-c"]
+          args:
+            - |
+              docker-entrypoint.sh postgres -c "listen_addresses=*" -c "wal_level=replica" &
+              PID=$!
+              until pg_isready -h localhost -U postgres; do sleep 2; done
+              # 서브넷 대역 허용 (K8s 내부 네트워크 신뢰)
+              echo "host replication replicator 0.0.0.0/0 trust" >> /var/lib/postgresql/data/pg_hba.conf
+              echo "host all all 0.0.0.0/0 trust" >> /var/lib/postgresql/data/pg_hba.conf
+              psql -h localhost -U postgres -c "SELECT pg_reload_conf();"
+              psql -h localhost -U postgres -c "CREATE USER replicator WITH REPLICATION LOGIN;" || true
+              wait $PID
+          volumeMounts:
+            - name: master-data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: master-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: "local-storage"
+        resources:
+          requests:
+            storage: 20Gi
+---
+# 5. Slave StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: db-slave
+  namespace: database
+spec:
+  serviceName: "db-headless"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db-cluster
+      role: slave
+  template:
+    metadata:
+      labels:
+        app: db-cluster
+        role: slave
+    spec:
+      nodeSelector:
+        role: db-slave
+      initContainers:
+        - name: init-replica
+          image: timescale/timescaledb:latest-pg17
+          securityContext:
+            runAsUser: 0
+          env:
+            - name: MASTER_DNS
+              # 포맷: {pod-name}.{service-name}.{namespace}.svc.cluster.local
+              value: "db-master-0.db-headless.timescale.svc.cluster.local"
+          command: ["bash", "-c"]
+          args:
+            - |
+              if [ ! -f /var/lib/postgresql/data/PG_VERSION ]; then
+                echo "Looking for Master at $MASTER_DNS..."
+                # DNS 해석이 될 때까지 대기
+                until pg_isready -h $MASTER_DNS -U postgres; do 
+                  echo "Waiting for Master ($MASTER_DNS)..."
+                  sleep 2
+                done
+                
+                rm -rf /var/lib/postgresql/data/*
+                # 백업 수행 시에도 도메인 이름 사용
+                PGSSLMODE=disable pg_basebackup -h $MASTER_DNS -U replicator -p 5432 -D /var/lib/postgresql/data -Fp -Xs -P -R
+                
+                touch /var/lib/postgresql/data/standby.signal
+                chown -R postgres:postgres /var/lib/postgresql/data
+                chmod 700 /var/lib/postgresql/data
+              fi
+          volumeMounts:
+            - name: slave-data
+              mountPath: /var/lib/postgresql/data
+      containers:
+        - name: slave
+          image: timescale/timescaledb:latest-pg17
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_HOST_AUTH_METHOD
+              value: "trust"
+          args: ["postgres", "-c", "listen_addresses=*", "-c", "hot_standby=on"]
+          volumeMounts:
+            - name: slave-data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: slave-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: "local-storage"
+        resources:
+          requests:
+            storage: 20Gi
