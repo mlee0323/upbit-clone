@@ -82,7 +82,6 @@ const fetchAndStoreTickers = async (): Promise<void> => {
     );
 
     console.log(`[${new Date().toISOString()}] Redis: Stored ${tickerData.length} tickers`);
-    console.log("testing")
   } catch (error) {
     if (axios.isAxiosError(error)) {
       console.error("Failed to fetch tickers:", error.message);
