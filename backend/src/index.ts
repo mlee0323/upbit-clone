@@ -51,7 +51,8 @@ app.get('/health', (req, res) => {
 
 // Start server
 const server = app.listen(PORT, async () => {
-  console.log(`🚀 Upbit Clone Backend running on http://127.0.0.1:${PORT}`);
+  console.log(`Upbit Clone Backend running on http://127.0.0.1:${PORT}`);
+  console.log(`배포 테스트`);
   
   // Initialize WebSocket server for frontend clients
   const { initWebSocketServer } = await import('./wsServer.js');
