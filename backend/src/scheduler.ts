@@ -107,6 +107,7 @@ const fetchAndStoreMarkets = async (): Promise<void> => {
 
     await setMarkets(krwMarkets);
     console.log(`[${new Date().toISOString()}] Redis: Stored ${krwMarkets.length} markets`);
+    console.log("testing")
   } catch (error) {
     console.error("Failed to fetch markets:", error);
   }
