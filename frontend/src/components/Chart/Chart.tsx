@@ -225,7 +225,12 @@ export default function Chart({ symbol, realtimePrice, onIntervalChange }: Chart
 
     const fitKey = `${symbol}-${selectedInterval}`;
     if (chartRef.current && lastFittedRef.current !== fitKey) {
-      chartRef.current.timeScale().fitContent();
+      // Show last 200 candles by default, user can scroll left to see older data
+      const visibleBars = Math.min(200, candleData.length);
+      chartRef.current.timeScale().setVisibleLogicalRange({
+        from: candleData.length - visibleBars,
+        to: candleData.length,
+      });
       lastFittedRef.current = fitKey;
     }
   }, [chartData, symbol, selectedInterval]);
