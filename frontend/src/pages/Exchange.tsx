@@ -58,7 +58,7 @@ export default function Exchange() {
       <Header />
       
       {/* Main content */}
-      <div className="max-w-[1400px] mx-auto pt-[72px] pb-[20px]">
+      <div className="max-w-[1400px] mx-auto px-4 pt-[72px] pb-[20px]">
         <div className="flex gap-[10px] items-start">
           {/* Left Section */}
           <div className="flex-1 flex flex-col gap-[10px] min-w-0">

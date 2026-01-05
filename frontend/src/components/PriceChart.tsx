@@ -35,15 +35,27 @@ export default function PriceChart({ symbol, data, isLoading, error }: PriceChar
         timeVisible: true,
         secondsVisible: true,
         borderColor: '#1e2d45',
+        fixLeftEdge: true,
+        fixRightEdge: true,
+      },
+      leftPriceScale: {
+        visible: false,
       },
       rightPriceScale: {
         borderColor: '#1e2d45',
         entireTextOnly: true,
-        minimumWidth: 100,
+        minimumWidth: 140,
+        borderVisible: true,
+        autoScale: true,
+        alignLabels: true,
+        scaleMargins: {
+          top: 0.1,
+          bottom: 0.2,
+        },
       },
       crosshair: {
-        vertLine: { color: '#4B9AF3', width: 1, style: 2 },
-        horzLine: { color: '#4B9AF3', width: 1, style: 2 },
+        vertLine: { color: '#4B9AF3', width: 1, style: 2, labelBackgroundColor: '#1e2d45' },
+        horzLine: { color: '#4B9AF3', width: 1, style: 2, labelBackgroundColor: '#1e2d45' },
       },
     });
 

@@ -12,7 +12,8 @@ const UPBIT_API_URL = 'https://api.upbit.com/v1';
 router.get('/candles/:symbol', async (req: Request, res: Response) => {
   try {
     const { symbol } = req.params;
-    const limit = Math.min(parseInt(req.query.limit as string) || 100, 200);
+    const limitParam = req.query.limit as string;
+    const limit = limitParam ? parseInt(limitParam) : undefined; // undefined = fetch all
     const interval = (req.query.interval as string) || 'M1';
 
     // Try to get from database first
@@ -31,7 +32,7 @@ router.get('/candles/:symbol', async (req: Request, res: Response) => {
           volume: true,
         },
         orderBy: { time: 'desc' },
-        take: limit,
+        ...(limit ? { take: limit } : {}), // Only apply limit if specified
       });
 
       if (candles.length > 0) {
