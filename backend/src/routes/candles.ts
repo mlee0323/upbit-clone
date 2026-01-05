@@ -3,17 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import axios from 'axios';
 
 const router = Router();
-
-// Use slave DB for read operations (chart data) - falls back to master if not configured
-const slaveDbUrl = process.env.DB_SLAVE_HOST 
-  ? `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_SLAVE_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`
-  : process.env.DATABASE_URL;
-
-const prismaRead = new PrismaClient({
-  datasources: slaveDbUrl ? { db: { url: slaveDbUrl } } : undefined,
-});
-
-console.log(`[Candles] Using read DB: ${process.env.DB_SLAVE_HOST || 'default (master)'}`);
+const prisma = new PrismaClient();
 
 const UPBIT_API_URL = 'https://api.upbit.com/v1';
 
@@ -28,7 +18,7 @@ router.get('/candles/:symbol', async (req: Request, res: Response) => {
 
     // Try to get from database first
     try {
-      const candles = await prismaRead.candle.findMany({
+      const candles = await prisma.candle.findMany({
         where: { 
           market: symbol,
           interval: interval,
@@ -70,7 +60,7 @@ router.get('/candles/:symbol', async (req: Request, res: Response) => {
                      interval === 'Mo' ? 'months' : 
                      `minutes/${interval.replace('M', '')}`;
     
-    const url = `${UPBIT_API_URL}/candles/${endpoint}?market=${symbol}&count=${limit}`;
+    const url = `${UPBIT_API_URL}/candles/${endpoint}?market=${symbol}&count=${limit || 200}`;
     const response = await axios.get(url);
     
     res.json(response.data.map((c: any) => ({

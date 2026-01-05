@@ -89,7 +89,8 @@ spec:
         app: db-cluster
         role: master
     spec:
-      # hostNetwork: true  <-- 삭제! (이제 격리된 파드 네트워크 사용)
+      hostNetwork: true # Tailscale 외부 접근용
+      dnsPolicy: ClusterFirstWithHostNet
       nodeSelector:
         role: db-master
       containers:
