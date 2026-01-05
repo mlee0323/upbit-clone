@@ -199,8 +199,10 @@ export default function Chart({ symbol, realtimePrice, onIntervalChange }: Chart
   useEffect(() => {
     if (!candleSeriesRef.current || !volumeSeriesRef.current || chartData.length === 0) return;
 
+    console.log(`[Chart] Raw data count: ${chartData.length}`);
+
     const candleData = chartData
-      .filter(item => item.time && item.open && item.close)
+      .filter(item => item.time && item.open !== undefined && item.close !== undefined)
       .map(item => ({
         // Shift by 9 hours for KST display
         time: (new Date(item.time).getTime() / 1000 + 9 * 3600) as Time,
@@ -212,13 +214,15 @@ export default function Chart({ symbol, realtimePrice, onIntervalChange }: Chart
       .sort((a, b) => (a.time as number) - (b.time as number));
 
     const volumeData = chartData
-      .filter(item => item.time && item.volume)
+      .filter(item => item.time && item.volume !== undefined)
       .map(item => ({
         time: (new Date(item.time).getTime() / 1000 + 9 * 3600) as Time,
         value: item.volume,
         color: item.close >= item.open ? 'rgba(200, 74, 49, 0.5)' : 'rgba(18, 97, 196, 0.5)',
       }))
       .sort((a, b) => (a.time as number) - (b.time as number));
+
+    console.log(`[Chart] Filtered candle count: ${candleData.length}, First: ${candleData[0]?.time}, Last: ${candleData[candleData.length-1]?.time}`);
 
     candleSeriesRef.current.setData(candleData);
     volumeSeriesRef.current.setData(volumeData);
