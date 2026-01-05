@@ -1,4 +1,5 @@
 import express from 'express';
+import compression from 'compression';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
@@ -20,6 +21,7 @@ const app = express();
 const PORT = process.env.PORT || 8000;
 
 // Middleware
+app.use(compression());
 app.use(helmet());
 app.use(cors({
   origin: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000', 'http://localhost:5173'],

@@ -179,6 +179,22 @@ export async function getMarkets(): Promise<MarketInfo[]> {
   }
 }
 
+// ============ Candle Caching ============
+
+export async function setCandlesCache(key: string, data: any, ttlSeconds: number = 60): Promise<void> {
+  await redis.set(key, JSON.stringify(data), 'EX', ttlSeconds);
+}
+
+export async function getCandlesCache(key: string): Promise<any | null> {
+  const data = await redis.get(key);
+  if (!data) return null;
+  try {
+    return JSON.parse(data);
+  } catch {
+    return null;
+  }
+}
+
 // Export redis client for direct use if needed
 export { redis };
 export default redis;
