@@ -38,6 +38,8 @@ export default function PriceChart({ symbol, data, isLoading, error }: PriceChar
       },
       rightPriceScale: {
         borderColor: '#1e2d45',
+        entireTextOnly: true,
+        minimumWidth: 100,
       },
       crosshair: {
         vertLine: { color: '#4B9AF3', width: 1, style: 2 },

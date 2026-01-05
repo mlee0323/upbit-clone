@@ -78,7 +78,8 @@ export default function Chart({ symbol, realtimePrice, onIntervalChange }: Chart
           top: 0.1,
           bottom: 0.2,
         },
-        minimumWidth: 100, // Increased width to prevent clipping
+        minimumWidth: 100,
+        entireTextOnly: true,
       },
       crosshair: {
         vertLine: { color: '#999', width: 1, style: 2, labelBackgroundColor: '#f5f5f5' },
