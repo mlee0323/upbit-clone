@@ -66,8 +66,8 @@ jobs:
           # 'skdtmr/upbit-clone-back:어쩌구' 부분을 찾아서 'skdtmr/upbit-clone-back:새로운해시'로 바꿈
           sed -i "s|image: ${{ env.BACKEND_IMAGE }}:.*|image: ${{ env.BACKEND_IMAGE }}:${{ github.sha }}|g" k8s/backend.yaml
 
-          # (프론트엔드도 있다면 여기서 똑같이 sed 명령어로 수정)
-          # sed -i "s|image: ${{ env.FRONTEND_IMAGE }}:.*|image: ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}|g" k8s/frontend.yaml
+          # 프론트엔드 배포 파일도 수정
+          sed -i "s|image: ${{ env.FRONTEND_IMAGE }}:.*|image: ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}|g" k8s/frontend.yaml
 
           # 3. 변경 사항 커밋 및 푸시
           git add k8s/
