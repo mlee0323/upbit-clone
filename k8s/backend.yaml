@@ -21,7 +21,7 @@ spec:
         role: backend
       containers:
         - name: backend
-          image: skdtmr/upbit-clone-back:b24e19a82c4fb67e09356af4eaf2a5ca8f74a938
+          image: skdtmr/upbit-clone-back:bad6388033a17586d69c41403694ef6c641a5022
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
