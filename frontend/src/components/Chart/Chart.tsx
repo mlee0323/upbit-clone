@@ -68,6 +68,7 @@ export default function Chart({ symbol, realtimePrice, onIntervalChange }: Chart
         timeVisible: true,
         secondsVisible: false,
         borderColor: '#e0e0e0',
+        rightOffset: 5, // Add space on the right for the latest candle
       },
       rightPriceScale: {
         borderColor: '#e0e0e0',
