@@ -8,6 +8,7 @@ metadata:
 data:
   # Database & Redis Connection
   DB_HOST: "db-headless.database.svc.cluster.local" # Headless 서비스 권장
+  DB_SLAVE_HOST: "100.88.204.14" # Tailscale IP for cross-cluster reads
   DB_PORT: "5432"
   DB_NAME: "upbit"
   REDIS_HOST: "redis.database.svc.cluster.local"
