@@ -120,18 +120,23 @@ router.post('/signup', async (req: Request, res: Response) => {
 router.post('/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
+    console.log(`[AUTH] Login attempt for: ${email}`);
 
     // Find user
     const user = await store.findUserByEmail(email);
 
     if (!user) {
+      console.log(`[AUTH] User not found: ${email}`);
       res.status(401).json({ detail: '이메일 또는 비밀번호가 올바르지 않습니다' });
       return;
     }
 
+    console.log(`[AUTH] User found: ${email}, id: ${user.id}`);
+
     // Verify password
     const isValid = await verifyPassword(password, user.hashedPassword);
     if (!isValid) {
+      console.log(`[AUTH] Password verification failed for: ${email}`);
       res.status(401).json({ detail: '이메일 또는 비밀번호가 올바르지 않습니다' });
       return;
     }
