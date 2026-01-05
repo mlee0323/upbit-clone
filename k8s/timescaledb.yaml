@@ -157,8 +157,8 @@ spec:
             runAsUser: 0
           env:
             - name: MASTER_DNS
-              # 포맷: {pod-name}.{service-name}.{namespace}.svc.cluster.local
-              value: "db-master-0.db-headless.timescale.svc.cluster.local"
+              # Tailscale IP for cross-cluster replication
+              value: "100.88.204.14"
           command: ["bash", "-c"]
           args:
             - |
