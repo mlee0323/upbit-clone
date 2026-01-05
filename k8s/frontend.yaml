@@ -20,7 +20,7 @@ spec:
       nodeSelector:
         role: frontend
       containers:
-        - image: skdtmr/upbit-clone-front:4fc3e555b113af868f58cc09f3f1ade87ba4fd79
+        - image: skdtmr/upbit-clone-front:b7c673a62014eefe3725df06d18c8aa9c3c896f4
           name: frontend
           ports:
             - containerPort: 80
