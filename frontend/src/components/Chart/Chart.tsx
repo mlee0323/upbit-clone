@@ -132,12 +132,14 @@ export default function Chart({ symbol, realtimePrice, onIntervalChange }: Chart
     setIsLoading(true);
     try {
       const apiInterval = INTERVAL_MAP[selectedInterval] || 'M1';
+      console.log(`[Chart] Fetching: /api/v1/candles/${symbol}?interval=${apiInterval}`);
       const response = await fetch(`/api/v1/candles/${symbol}?interval=${apiInterval}`);
       if (!response.ok) throw new Error('Failed to fetch');
       const data = await response.json();
+      console.log(`[Chart] Fetched data count: ${data.length}`);
       setChartData(data);
     } catch (error) {
-      console.error('Failed to fetch candle data:', error);
+      console.error('[Chart] Failed to fetch candle data:', error);
       setChartData([]);
     } finally {
       setIsLoading(false);
