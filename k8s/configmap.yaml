@@ -4,21 +4,19 @@ metadata:
   name: backend-config
   namespace: backend
   labels:
-    app.kubernetes.io/name: upbit-backend
+    app: upbit-backend
 data:
-  # Database & Redis Connection
-  DB_HOST: "db-headless.database.svc.cluster.local" # Headless 서비스 권장
-  DB_SLAVE_HOST: "100.88.204.14" # Tailscale IP for cross-cluster reads
+  DB_HOST: "db-headless.database.svc.cluster.local"
+  DB_SLAVE_HOST: "100.88.204.14"
   DB_PORT: "5432"
   DB_NAME: "upbit"
   REDIS_HOST: "redis.database.svc.cluster.local"
   REDIS_PORT: "6379"
 
-  # Application Settings
-  PORT: "3000" # <--- [중요] 3000으로 설정
+  PORT: "3000"
   USE_REAL_DB: "true"
 
-  # CORS 설정 (네임스페이스 frontend로 수정 + Ingress 도메인 추가)
+  # 로컬 테스트용
   CORS_ORIGINS: "http://localhost:3000,http://localhost:5173,http://upbit-frontend.frontend.svc.cluster.local,http://upbit.local"
 
   UPBIT_API_URL: "https://api.upbit.com/v1"

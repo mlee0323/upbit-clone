@@ -5,14 +5,13 @@ metadata:
 provisioner: kubernetes.io/no-provisioner
 volumeBindingMode: WaitForFirstConsumer
 ---
-# 2. PV 설정 (변경 없음)
 apiVersion: v1
 kind: PersistentVolume
 metadata:
   name: timescale-master-pv
 spec:
   capacity:
-    storage: 20Gi # 용량 확장 반영
+    storage: 20Gi
   accessModes:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
@@ -56,21 +55,19 @@ spec:
               values:
                 - db-slave
 ---
-# 3. Headless Service (DNS 통신의 핵심)
 apiVersion: v1
 kind: Service
 metadata:
   name: db-headless
   namespace: database
 spec:
-  clusterIP: None # Headless 모드
+  clusterIP: None
   selector:
     app: db-cluster
   ports:
     - port: 5432
       name: postgres
 ---
-# 4. Master StatefulSet
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -89,7 +86,7 @@ spec:
         app: db-cluster
         role: master
     spec:
-      hostNetwork: true # Tailscale 외부 접근용
+      hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       nodeSelector:
         role: db-master
@@ -97,7 +94,7 @@ spec:
         - name: master
           image: timescale/timescaledb:latest-pg17
           ports:
-            - containerPort: 5432 # 명시적으로 포트 선언
+            - containerPort: 5432
           env:
             - name: POSTGRES_PASSWORD
               valueFrom:
@@ -110,7 +107,6 @@ spec:
               docker-entrypoint.sh postgres -c "listen_addresses=*" -c "wal_level=replica" &
               PID=$!
               until pg_isready -h localhost -U postgres; do sleep 2; done
-              # 서브넷 대역 허용 (K8s 내부 네트워크 신뢰)
               echo "host replication replicator 0.0.0.0/0 trust" >> /var/lib/postgresql/data/pg_hba.conf
               echo "host all all 0.0.0.0/0 trust" >> /var/lib/postgresql/data/pg_hba.conf
               psql -h localhost -U postgres -c "SELECT pg_reload_conf();"
@@ -129,7 +125,6 @@ spec:
           requests:
             storage: 20Gi
 ---
-# 5. Slave StatefulSet
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -157,21 +152,18 @@ spec:
             runAsUser: 0
           env:
             - name: MASTER_DNS
-              # Tailscale IP for cross-cluster replication
               value: "100.88.204.14"
           command: ["bash", "-c"]
           args:
             - |
               if [ ! -f /var/lib/postgresql/data/PG_VERSION ]; then
                 echo "Looking for Master at $MASTER_DNS..."
-                # DNS 해석이 될 때까지 대기
                 until pg_isready -h $MASTER_DNS -U postgres; do 
                   echo "Waiting for Master ($MASTER_DNS)..."
                   sleep 2
                 done
                 
                 rm -rf /var/lib/postgresql/data/*
-                # 백업 수행 시에도 도메인 이름 사용
                 PGSSLMODE=disable pg_basebackup -h $MASTER_DNS -U replicator -p 5432 -D /var/lib/postgresql/data -Fp -Xs -P -R
                 
                 touch /var/lib/postgresql/data/standby.signal
