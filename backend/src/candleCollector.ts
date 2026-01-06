@@ -161,8 +161,12 @@ async function saveCandles(candles: UpbitCandle[], interval: string): Promise<nu
       data,
       skipDuplicates: true,
     });
+    if (result.count > 0) {
+      // console.log(`      ✓ Saved ${result.count} candles to DB`);
+    }
     return result.count;
-  } catch {
+  } catch (error) {
+    console.error(`      ❌ Failed to save candles to DB:`, error instanceof Error ? error.message : error);
     return 0;
   }
 }
@@ -274,7 +278,10 @@ async function collectLatestM1(): Promise<void> {
   
   // Save all at once
   if (allCandles.length > 0) {
-    await saveCandles(allCandles, 'M1');
+    const saved = await saveCandles(allCandles, 'M1');
+    if (saved > 0) {
+      console.log(`   [M1] Real-time update: +${saved} candles saved to DB`);
+    }
   }
   
   isCollecting = false;
@@ -318,7 +325,10 @@ async function collectOtherTimeframes(): Promise<void> {
     }
     
     if (allCandles.length > 0) {
-      await saveCandles(allCandles, tf.interval);
+      const saved = await saveCandles(allCandles, tf.interval);
+      if (saved > 0) {
+        console.log(`   [${tf.interval}] Real-time update: +${saved} candles saved to DB`);
+      }
     }
   }
   
