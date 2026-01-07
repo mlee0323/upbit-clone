@@ -1,67 +1,67 @@
-# apiVersion: postgresql.cnpg.io/v1
-# kind: Cluster
-# metadata:
-#   name: timescaledb
-#   namespace: database
-# spec:
-#   instances: 2
-#   # imageName: timescale/timescaledb:latest-pg17
-#   imageCatalogRef:
-#     apiGroup: postgresql.cnpg.io
-#     kind: ClusterImageCatalog
-#     name: timescaledb-catalog
-#     major: 17
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: timescaledb
+  namespace: database
+spec:
+  instances: 2
+  # imageName: timescale/timescaledb:latest-pg17
+  imageCatalogRef:
+    apiGroup: postgresql.cnpg.io
+    kind: ClusterImageCatalog
+    name: timescaledb-catalog
+    major: 17
 
-#   # TimescaleDB 이미지 UID/GID 설정 (Debian 기반: 1000, Alpine 기반: 70)
-#   postgresUID: 70
-#   postgresGID: 70
+  # TimescaleDB 이미지 UID/GID 설정 (Debian 기반: 1000, Alpine 기반: 70)
+  postgresUID: 70
+  postgresGID: 70
 
-#   # PostgreSQL 설정 (TimescaleDB 로딩)
-#   postgresql:
-#     shared_preload_libraries:
-#       - "timescaledb"
+  # PostgreSQL 설정 (TimescaleDB 로딩)
+  postgresql:
+    shared_preload_libraries:
+      - "timescaledb"
 
-#   # 스토리지 설정 (Local PV 사용)
-#   storage:
-#     size: 20Gi
-#     storageClass: local-storage # 또는 사용 중인 스토리지 클래스
+  # 스토리지 설정 (Local PV 사용)
+  storage:
+    size: 20Gi
+    storageClass: local-storage # 또는 사용 중인 스토리지 클래스
 
-#   # 백업 설정 (NFS)
-#   # backup:
-#   #   barmanObjectStore:
-#   #     destinationPath: s3://backup/ # NFS를 S3처럼 쓰거나, PVC 방식 사용 가능
-#   #     # 여기서는 간단하게 PVC 방식 권장 (아래 walStorage 참조)
+  # 백업 설정 (NFS)
+  # backup:
+  #   barmanObjectStore:
+  #     destinationPath: s3://backup/ # NFS를 S3처럼 쓰거나, PVC 방식 사용 가능
+  #     # 여기서는 간단하게 PVC 방식 권장 (아래 walStorage 참조)
 
-#   # 고가용성 설정
-#   primaryUpdateStrategy: unsupervised
+  # 고가용성 설정
+  primaryUpdateStrategy: unsupervised
 
-#   # Node Affinity (설계서 반영)
-#   affinity:
-#     nodeAffinity:
-#       preferredDuringSchedulingIgnoredDuringExecution:
-#         - weight: 100
-#           preference:
-#             matchExpressions:
-#               - key: kubernetes.io/hostname
-#                 operator: In
-#                 values: ["db-master", "db-slave"]
-#         - weight: 80
-#           preference:
-#             matchExpressions:
-#               - key: kubernetes.io/hostname
-#                 operator: In
-#                 values: ["worker-3"]
-#         - weight: 50
-#           preference:
-#             matchExpressions:
-#               - key: kubernetes.io/hostname
-#                 operator: In
-#                 values: ["worker-4"]
+  # Node Affinity (설계서 반영)
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          preference:
+            matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values: ["db-master", "db-slave"]
+        - weight: 80
+          preference:
+            matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values: ["worker-3"]
+        - weight: 50
+          preference:
+            matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values: ["worker-4"]
 
-#   # 부트스트랩 (초기화)
-#   bootstrap:
-#     initdb:
-#       database: app
-#       owner: app
-#       secret:
-#         name: timescale-secret # 기존 시크릿 재사용
+  # 부트스트랩 (초기화)
+  bootstrap:
+    initdb:
+      database: app
+      owner: app
+      secret:
+        name: timescale-secret # 기존 시크릿 재사용
