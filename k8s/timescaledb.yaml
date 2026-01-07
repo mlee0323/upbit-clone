@@ -1,196 +1,196 @@
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: local-storage
-provisioner: kubernetes.io/no-provisioner
-volumeBindingMode: WaitForFirstConsumer
----
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: timescale-master-pv
-spec:
-  capacity:
-    storage: 20Gi
-  accessModes:
-    - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: local-storage
-  claimRef:
-    namespace: database
-    name: master-data-db-master-0
-  local:
-    path: /data/db-master
-  nodeAffinity:
-    required:
-      nodeSelectorTerms:
-        - matchExpressions:
-            - key: role
-              operator: In
-              values:
-                - db-master
----
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: timescale-slave-pv
-spec:
-  capacity:
-    storage: 20Gi
-  accessModes:
-    - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: local-storage
-  claimRef:
-    namespace: database
-    name: slave-data-db-slave-0
-  local:
-    path: /data/db-slave
-  nodeAffinity:
-    required:
-      nodeSelectorTerms:
-        - matchExpressions:
-            - key: role
-              operator: In
-              values:
-                - db-slave
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: db-headless
-  namespace: database
-spec:
-  clusterIP: None
-  selector:
-    app: db-cluster
-  ports:
-    - port: 5432
-      name: postgres
----
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: db-master
-  namespace: database
-spec:
-  serviceName: "db-headless"
-  replicas: 1
-  selector:
-    matchLabels:
-      app: db-cluster
-      role: master
-  template:
-    metadata:
-      labels:
-        app: db-cluster
-        role: master
-    spec:
-      hostNetwork: true
-      dnsPolicy: ClusterFirstWithHostNet
-      nodeSelector:
-        role: db-master
-      containers:
-        - name: master
-          image: timescale/timescaledb:latest-pg17
-          ports:
-            - containerPort: 5432
-          env:
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: timescale-secret
-                  key: pg-root-password
-          command: ["bash", "-c"]
-          args:
-            - |
-              docker-entrypoint.sh postgres -c "listen_addresses=*" -c "wal_level=replica" &
-              PID=$!
-              until pg_isready -h localhost -U postgres; do sleep 2; done
-              echo "host replication replicator 0.0.0.0/0 trust" >> /var/lib/postgresql/data/pg_hba.conf
-              echo "host all all 0.0.0.0/0 trust" >> /var/lib/postgresql/data/pg_hba.conf
-              psql -h localhost -U postgres -c "SELECT pg_reload_conf();"
-              psql -h localhost -U postgres -c "CREATE USER replicator WITH REPLICATION LOGIN;" || true
-              wait $PID
-          volumeMounts:
-            - name: master-data
-              mountPath: /var/lib/postgresql/data
-  volumeClaimTemplates:
-    - metadata:
-        name: master-data
-      spec:
-        accessModes: ["ReadWriteOnce"]
-        storageClassName: "local-storage"
-        resources:
-          requests:
-            storage: 20Gi
----
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: db-slave
-  namespace: database
-spec:
-  serviceName: "db-headless"
-  replicas: 1
-  selector:
-    matchLabels:
-      app: db-cluster
-      role: slave
-  template:
-    metadata:
-      labels:
-        app: db-cluster
-        role: slave
-    spec:
-      nodeSelector:
-        role: db-slave
-      initContainers:
-        - name: init-replica
-          image: timescale/timescaledb:latest-pg17
-          securityContext:
-            runAsUser: 0
-          env:
-            - name: MASTER_DNS
-              value: "100.88.204.14"
-          command: ["bash", "-c"]
-          args:
-            - |
-              if [ ! -f /var/lib/postgresql/data/PG_VERSION ]; then
-                echo "Looking for Master at $MASTER_DNS..."
-                until pg_isready -h $MASTER_DNS -U postgres; do 
-                  echo "Waiting for Master ($MASTER_DNS)..."
-                  sleep 2
-                done
-                
-                rm -rf /var/lib/postgresql/data/*
-                PGSSLMODE=disable pg_basebackup -h $MASTER_DNS -U replicator -p 5432 -D /var/lib/postgresql/data -Fp -Xs -P -R
-                
-                touch /var/lib/postgresql/data/standby.signal
-                chown -R postgres:postgres /var/lib/postgresql/data
-                chmod 700 /var/lib/postgresql/data
-              fi
-          volumeMounts:
-            - name: slave-data
-              mountPath: /var/lib/postgresql/data
-      containers:
-        - name: slave
-          image: timescale/timescaledb:latest-pg17
-          ports:
-            - containerPort: 5432
-          env:
-            - name: POSTGRES_HOST_AUTH_METHOD
-              value: "trust"
-          args: ["postgres", "-c", "listen_addresses=*", "-c", "hot_standby=on"]
-          volumeMounts:
-            - name: slave-data
-              mountPath: /var/lib/postgresql/data
-  volumeClaimTemplates:
-    - metadata:
-        name: slave-data
-      spec:
-        accessModes: ["ReadWriteOnce"]
-        storageClassName: "local-storage"
-        resources:
-          requests:
-            storage: 20Gi
+# apiVersion: storage.k8s.io/v1
+# kind: StorageClass
+# metadata:
+#   name: local-storage
+# provisioner: kubernetes.io/no-provisioner
+# volumeBindingMode: WaitForFirstConsumer
+# ---
+# apiVersion: v1
+# kind: PersistentVolume
+# metadata:
+#   name: timescale-master-pv
+# spec:
+#   capacity:
+#     storage: 20Gi
+#   accessModes:
+#     - ReadWriteOnce
+#   persistentVolumeReclaimPolicy: Retain
+#   storageClassName: local-storage
+#   claimRef:
+#     namespace: database
+#     name: master-data-db-master-0
+#   local:
+#     path: /data/db-master
+#   nodeAffinity:
+#     required:
+#       nodeSelectorTerms:
+#         - matchExpressions:
+#             - key: role
+#               operator: In
+#               values:
+#                 - db-master
+# ---
+# apiVersion: v1
+# kind: PersistentVolume
+# metadata:
+#   name: timescale-slave-pv
+# spec:
+#   capacity:
+#     storage: 20Gi
+#   accessModes:
+#     - ReadWriteOnce
+#   persistentVolumeReclaimPolicy: Retain
+#   storageClassName: local-storage
+#   claimRef:
+#     namespace: database
+#     name: slave-data-db-slave-0
+#   local:
+#     path: /data/db-slave
+#   nodeAffinity:
+#     required:
+#       nodeSelectorTerms:
+#         - matchExpressions:
+#             - key: role
+#               operator: In
+#               values:
+#                 - db-slave
+# ---
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: db-headless
+#   namespace: database
+# spec:
+#   clusterIP: None
+#   selector:
+#     app: db-cluster
+#   ports:
+#     - port: 5432
+#       name: postgres
+# ---
+# apiVersion: apps/v1
+# kind: StatefulSet
+# metadata:
+#   name: db-master
+#   namespace: database
+# spec:
+#   serviceName: "db-headless"
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: db-cluster
+#       role: master
+#   template:
+#     metadata:
+#       labels:
+#         app: db-cluster
+#         role: master
+#     spec:
+#       hostNetwork: true
+#       dnsPolicy: ClusterFirstWithHostNet
+#       nodeSelector:
+#         role: db-master
+#       containers:
+#         - name: master
+#           image: timescale/timescaledb:latest-pg17
+#           ports:
+#             - containerPort: 5432
+#           env:
+#             - name: POSTGRES_PASSWORD
+#               valueFrom:
+#                 secretKeyRef:
+#                   name: timescale-secret
+#                   key: pg-root-password
+#           command: ["bash", "-c"]
+#           args:
+#             - |
+#               docker-entrypoint.sh postgres -c "listen_addresses=*" -c "wal_level=replica" &
+#               PID=$!
+#               until pg_isready -h localhost -U postgres; do sleep 2; done
+#               echo "host replication replicator 0.0.0.0/0 trust" >> /var/lib/postgresql/data/pg_hba.conf
+#               echo "host all all 0.0.0.0/0 trust" >> /var/lib/postgresql/data/pg_hba.conf
+#               psql -h localhost -U postgres -c "SELECT pg_reload_conf();"
+#               psql -h localhost -U postgres -c "CREATE USER replicator WITH REPLICATION LOGIN;" || true
+#               wait $PID
+#           volumeMounts:
+#             - name: master-data
+#               mountPath: /var/lib/postgresql/data
+#   volumeClaimTemplates:
+#     - metadata:
+#         name: master-data
+#       spec:
+#         accessModes: ["ReadWriteOnce"]
+#         storageClassName: "local-storage"
+#         resources:
+#           requests:
+#             storage: 20Gi
+# ---
+# apiVersion: apps/v1
+# kind: StatefulSet
+# metadata:
+#   name: db-slave
+#   namespace: database
+# spec:
+#   serviceName: "db-headless"
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: db-cluster
+#       role: slave
+#   template:
+#     metadata:
+#       labels:
+#         app: db-cluster
+#         role: slave
+#     spec:
+#       nodeSelector:
+#         role: db-slave
+#       initContainers:
+#         - name: init-replica
+#           image: timescale/timescaledb:latest-pg17
+#           securityContext:
+#             runAsUser: 0
+#           env:
+#             - name: MASTER_DNS
+#               value: "100.88.204.14"
+#           command: ["bash", "-c"]
+#           args:
+#             - |
+#               if [ ! -f /var/lib/postgresql/data/PG_VERSION ]; then
+#                 echo "Looking for Master at $MASTER_DNS..."
+#                 until pg_isready -h $MASTER_DNS -U postgres; do
+#                   echo "Waiting for Master ($MASTER_DNS)..."
+#                   sleep 2
+#                 done
+
+#                 rm -rf /var/lib/postgresql/data/*
+#                 PGSSLMODE=disable pg_basebackup -h $MASTER_DNS -U replicator -p 5432 -D /var/lib/postgresql/data -Fp -Xs -P -R
+
+#                 touch /var/lib/postgresql/data/standby.signal
+#                 chown -R postgres:postgres /var/lib/postgresql/data
+#                 chmod 700 /var/lib/postgresql/data
+#               fi
+#           volumeMounts:
+#             - name: slave-data
+#               mountPath: /var/lib/postgresql/data
+#       containers:
+#         - name: slave
+#           image: timescale/timescaledb:latest-pg17
+#           ports:
+#             - containerPort: 5432
+#           env:
+#             - name: POSTGRES_HOST_AUTH_METHOD
+#               value: "trust"
+#           args: ["postgres", "-c", "listen_addresses=*", "-c", "hot_standby=on"]
+#           volumeMounts:
+#             - name: slave-data
+#               mountPath: /var/lib/postgresql/data
+#   volumeClaimTemplates:
+#     - metadata:
+#         name: slave-data
+#       spec:
+#         accessModes: ["ReadWriteOnce"]
+#         storageClassName: "local-storage"
+#         resources:
+#           requests:
+#             storage: 20Gi
