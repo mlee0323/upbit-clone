@@ -27,7 +27,7 @@ spec:
             matchLabels:
               app: upbit-frontend
       containers:
-        - image: skdtmr/upbit-clone-front:dc0aa4c1b584dc95e318518afc1f3f335b928d31
+        - image: skdtmr/upbit-clone-front:1cef98b7215b0ea942a5015ca13c941624066005
           name: frontend
           ports:
             - containerPort: 80
