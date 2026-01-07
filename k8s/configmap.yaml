@@ -9,7 +9,7 @@ data:
   DB_HOST: "timescaledb-rw.database.svc.cluster.local"
   DB_SLAVE_HOST: "timescaledb-ro.database.svc.cluster.local"
   DB_PORT: "5432"
-  DB_NAME: "upbit"
+  DB_NAME: "app"
   REDIS_HOST: "redis.database.svc.cluster.local"
   REDIS_PORT: "6379"
 
