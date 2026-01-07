@@ -49,7 +49,7 @@ spec:
                     values: ["worker-3"]
       containers:
         - name: backend
-          image: skdtmr/upbit-clone-back:4c622d63eb84657a813d614184a669f508968f4e
+          image: skdtmr/upbit-clone-back:1ceb0b27d49502cc30cdc68ae4d73760628f1357
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
