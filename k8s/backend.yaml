@@ -28,7 +28,7 @@ spec:
               app: upbit-backend
       containers:
         - name: backend
-          image: skdtmr/upbit-clone-back:b4392102edd7261f4f2c75b12fd01da0ae6a1ada
+          image: skdtmr/upbit-clone-back:dc0aa4c1b584dc95e318518afc1f3f335b928d31
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
