@@ -12,6 +12,10 @@ spec:
     name: timescaledb-catalog
     major: 17
 
+  # TimescaleDB 이미지 UID/GID 설정 (Debian 기반: 1000, Alpine 기반: 70)
+  postgresUID: 70
+  postgresGID: 70
+
   # 스토리지 설정 (Local PV 사용)
   storage:
     size: 20Gi
