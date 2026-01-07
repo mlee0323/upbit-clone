@@ -48,7 +48,7 @@ spec:
                     operator: In
                     values: ["worker-4"]
       containers:
-        - image: skdtmr/upbit-clone-front:c027697fd3892071a038c8e675bbb4e91e862cf1
+        - image: skdtmr/upbit-clone-front:d2166f1a526385c071b1d4295c301c09e3966763
           name: frontend
           ports:
             - containerPort: 80
