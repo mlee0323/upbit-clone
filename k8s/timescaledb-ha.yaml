@@ -18,8 +18,8 @@ spec:
 
   # PostgreSQL 설정 (TimescaleDB 로딩)
   postgresql:
-    parameters:
-      shared_preload_libraries: "timescaledb"
+    shared_preload_libraries:
+      - "timescaledb"
 
   # 스토리지 설정 (Local PV 사용)
   storage:
