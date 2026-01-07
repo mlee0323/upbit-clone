@@ -5,7 +5,11 @@ metadata:
   namespace: database
 spec:
   instances: 2
-  imageName: timescale/timescaledb:latest-pg17 # TimescaleDB 이미지 사용
+  # imageName: timescale/timescaledb:latest-pg17
+  imageCatalogRef:
+    kind: ClusterImageCatalog
+    name: timescaledb-catalog
+    major: 17
 
   # 스토리지 설정 (Local PV 사용)
   storage:
