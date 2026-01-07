@@ -12,6 +12,9 @@ data:
   DB_NAME: "app"
   REDIS_HOST: "redis.database.svc.cluster.local"
   REDIS_PORT: "6379"
+  ENABLE_WS_CLIENT: "false"
+  ENABLE_CANDLE_COLLECTOR: "false"
+  ENABLE_ORDER_SCHEDULER: "false"
 
   PORT: "3000"
   USE_REAL_DB: "true"

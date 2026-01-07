@@ -42,21 +42,21 @@ spec:
         - weight: 100
           preference:
             matchExpressions:
-              - key: kubernetes.io/hostname
+              - key: role
                 operator: In
                 values: ["db-master", "db-slave"]
         - weight: 80
           preference:
             matchExpressions:
-              - key: kubernetes.io/hostname
+              - key: role
                 operator: In
-                values: ["worker-3"]
+                values: ["market-service"]
         - weight: 50
           preference:
             matchExpressions:
-              - key: kubernetes.io/hostname
+              - key: role
                 operator: In
-                values: ["worker-4"]
+                values: ["spare"]
 
   # 부트스트랩 (초기화)
   bootstrap:

@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: upbit-backend
+  name: upbit-market
   namespace: backend
   labels:
-    app: upbit-backend
-    component: backend
+    app: upbit-market
+    component: market-service
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
-      app: upbit-backend
+      app: upbit-market
   template:
     metadata:
       labels:
-        app: upbit-backend
-        component: backend
+        app: upbit-market
+        component: market-service
     spec:
       affinity:
         nodeAffinity:
@@ -25,22 +25,16 @@ spec:
                 matchExpressions:
                   - key: role
                     operator: In
-                    values: ["backend"]
-            - weight: 80
-              preference:
-                matchExpressions:
-                  - key: role
-                    operator: In
-                    values: ["spare"]
+                    values: ["market-service"]
             - weight: 50
               preference:
                 matchExpressions:
                   - key: role
                     operator: In
-                    values: ["market-service"]
+                    values: ["spare"]
       containers:
-        - name: backend
-          image: skdtmr/upbit-clone-back:453cdc2185a2bd325c205bf2f9dd6731fa83a2a6
+        - name: market-service
+          image: skdtmr/upbit-clone-back:4096234be205336b123453a4a6839daf5e545013
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
@@ -50,7 +44,9 @@ spec:
             - secretRef:
                 name: backend-secret
           env:
-            - name: ENABLE_ORDER_SCHEDULER
+            - name: ENABLE_WS_CLIENT
+              value: "true"
+            - name: ENABLE_CANDLE_COLLECTOR
               value: "true"
           resources:
             requests:
@@ -77,18 +73,15 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: upbit-backend
+  name: upbit-market
   namespace: backend
   labels:
-    app: upbit-backend
+    app: upbit-market
 spec:
   type: ClusterIP
   selector:
-    app: upbit-backend
+    app: upbit-market
   ports:
     - name: http
       port: 3000
-      targetPort: 3000
-    - name: ws
-      port: 8000
       targetPort: 3000

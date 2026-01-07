@@ -60,15 +60,21 @@ const server = app.listen(PORT, async () => {
   initWebSocketServer(server);
   
   // Start WebSocket connection for real-time data from Upbit
-  const { connectUpbitWebSocket } = await import('./upbitWs.js');
-  connectUpbitWebSocket();
+  if (process.env.ENABLE_WS_CLIENT === 'true') {
+    const { connectUpbitWebSocket } = await import('./upbitWs.js');
+    connectUpbitWebSocket();
+  }
   
   // Start candle data collector (stores to DB)
-  const { startCandleScheduler } = await import('./candleCollector.js');
-  startCandleScheduler();
+  if (process.env.ENABLE_CANDLE_COLLECTOR === 'true') {
+    const { startCandleScheduler } = await import('./candleCollector.js');
+    startCandleScheduler();
+  }
   
   // Start scheduler for order matching only
-  startScheduler();
+  if (process.env.ENABLE_ORDER_SCHEDULER === 'true') {
+    startScheduler();
+  }
 });
 
 // Graceful shutdown
