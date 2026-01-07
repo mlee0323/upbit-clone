@@ -13,10 +13,10 @@ spec:
     storageClass: local-storage # 또는 사용 중인 스토리지 클래스
 
   # 백업 설정 (NFS)
-  backup:
-    barmanObjectStore:
-      destinationPath: s3://backup/ # NFS를 S3처럼 쓰거나, PVC 방식 사용 가능
-      # 여기서는 간단하게 PVC 방식 권장 (아래 walStorage 참조)
+  # backup:
+  #   barmanObjectStore:
+  #     destinationPath: s3://backup/ # NFS를 S3처럼 쓰거나, PVC 방식 사용 가능
+  #     # 여기서는 간단하게 PVC 방식 권장 (아래 walStorage 참조)
 
   # 고가용성 설정
   primaryUpdateStrategy: unsupervised
