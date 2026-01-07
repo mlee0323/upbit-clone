@@ -7,6 +7,7 @@ spec:
   instances: 2
   # imageName: timescale/timescaledb:latest-pg17
   imageCatalogRef:
+    apiGroup: postgresql.cnpg.io
     kind: ClusterImageCatalog
     name: timescaledb-catalog
     major: 17
