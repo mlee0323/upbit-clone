@@ -19,6 +19,13 @@ spec:
     spec:
       nodeSelector:
         role: backend
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: upbit-backend
       containers:
         - name: backend
           image: skdtmr/upbit-clone-back:af17619abfb2675d4feddb9738ae375eb3311c9e

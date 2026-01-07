@@ -1,0 +1,73 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: backup-nfs-pv
+spec:
+  capacity:
+    storage: 100Gi
+  accessModes:
+    - ReadWriteMany
+  nfs:
+    server: storage-nfs # NFS 서버의 호스트네임 또는 IP (예: 192.168.x.x)
+    path: /srv/nfs/backup
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backup-pvc
+  namespace: database
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Gi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: db-backup
+  namespace: database
+spec:
+  schedule: "0 18 * * *" # 매일 한국 시간 03:00 (UTC 18:00)
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: backup
+              image: timescale/timescaledb:latest-pg17
+              env:
+                - name: PGHOST
+                  value: "db-headless"
+                - name: PGUSER
+                  value: "postgres"
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: timescale-secret
+                      key: pg-root-password
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  echo "Starting backup..."
+                  DATE=$(date +%Y%m%d_%H%M%S)
+                  # 전체 DB 백업 (스키마 + 데이터)
+                  pg_dump -h $PGHOST -U $PGUSER -d postgres -Fp -Xs > /backup/backup_$DATE.sql
+
+                  if [ $? -eq 0 ]; then
+                    echo "Backup completed: /backup/backup_$DATE.sql"
+                    # 7일 지난 백업 삭제
+                    find /backup -name "backup_*.sql" -mtime +7 -delete
+                  else
+                    echo "Backup failed!"
+                    exit 1
+                  fi
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backup
+          restartPolicy: OnFailure
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: backup-pvc
