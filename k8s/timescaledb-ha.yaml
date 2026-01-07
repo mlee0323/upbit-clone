@@ -5,7 +5,7 @@ metadata:
   namespace: database
 spec:
   instances: 2
-  imageName: ghcr.io/cloudnative-pg/postgresql:17.2 # TimescaleDB 이미지로 변경 필요 시 수정
+  imageName: timescale/timescaledb:latest-pg17 # TimescaleDB 이미지 사용
 
   # 스토리지 설정 (Local PV 사용)
   storage:
