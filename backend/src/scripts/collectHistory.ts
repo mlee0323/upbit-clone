@@ -7,7 +7,40 @@ const prisma = new PrismaClient();
 const UPBIT_API_URL = 'https://api.upbit.com/v1';
 const REQUEST_DELAY_MS = 200; 
 
-// ... (TIMEFRAMES 등 기존 코드 유지)
+// Timeframe configurations - 2 years of data
+const TIMEFRAMES = [
+  { interval: 'M1', endpoint: 'minutes/1', maxCandles: 20000 },
+  { interval: 'M5', endpoint: 'minutes/5', maxCandles: 20000 },
+  { interval: 'M15', endpoint: 'minutes/15', maxCandles: 20000 },
+  { interval: 'M60', endpoint: 'minutes/60', maxCandles: 17520 },
+  { interval: 'D', endpoint: 'days', maxCandles: 730 },
+  { interval: 'W', endpoint: 'weeks', maxCandles: 104 },
+  { interval: 'Mo', endpoint: 'months', maxCandles: 24 },
+];
+
+interface UpbitCandle {
+  market: string;
+  candle_date_time_utc: string;
+  opening_price: number;
+  high_price: number;
+  low_price: number;
+  trade_price: number;
+  candle_acc_trade_volume: number;
+}
+
+interface UpbitMarket {
+  market: string;
+  korean_name: string;
+  english_name: string;
+}
+
+// Fetch all KRW markets
+async function fetchAllKRWMarkets(): Promise<string[]> {
+  const response = await axios.get<UpbitMarket[]>(`${UPBIT_API_URL}/market/all`);
+  return response.data
+    .filter(m => m.market.startsWith('KRW-'))
+    .map(m => m.market);
+}
 
 async function fetchCandlesSmart(
   market: string,
