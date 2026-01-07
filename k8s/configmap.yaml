@@ -6,8 +6,8 @@ metadata:
   labels:
     app: upbit-backend
 data:
-  DB_HOST: "db-headless.database.svc.cluster.local"
-  DB_SLAVE_HOST: "100.88.204.14"
+  DB_HOST: "timescaledb-rw.database.svc.cluster.local"
+  DB_SLAVE_HOST: "timescaledb-ro.database.svc.cluster.local"
   DB_PORT: "5432"
   DB_NAME: "upbit"
   REDIS_HOST: "redis.database.svc.cluster.local"
