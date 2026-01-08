@@ -40,7 +40,7 @@ spec:
                     values: ["market-service"]
       containers:
         - name: backend
-          image: skdtmr/upbit-clone-back:859775007063e628222e2d632ec5c934a9def0cb
+          image: skdtmr/upbit-clone-back:9d351ca3c4ca6d7f9c2dadc36cf26aa8fb147feb
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
