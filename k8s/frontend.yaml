@@ -39,7 +39,7 @@ spec:
                     operator: In
                     values: ["spare"]
       containers:
-        - image: skdtmr/upbit-clone-front:9d351ca3c4ca6d7f9c2dadc36cf26aa8fb147feb
+        - image: skdtmr/upbit-clone-front:3fecfd9db7212bfc5a3f86cfaf52fe4bb45d2d48
           name: frontend
           ports:
             - containerPort: 80
