@@ -57,32 +57,38 @@ const generateTicket = (): string => {
 };
 
 // Fetch all KRW markets from Upbit API
+// Fetch all KRW markets from Upbit API with retry
 async function fetchKRWMarkets(): Promise<string[]> {
-  try {
-    const response = await axios.get<UpbitMarket[]>(`${UPBIT_API_URL}/market/all`);
-    const krwMarkets = response.data
-      .filter(m => m.market.startsWith('KRW-'))
-      .map(m => m.market);
-    
-    // Save to Redis
-    const marketInfos: MarketInfo[] = response.data
-      .filter(m => m.market.startsWith('KRW-'))
-      .map(m => ({
-        market: m.market,
-        korean_name: m.korean_name,
-        english_name: m.english_name,
-      }));
-    await setMarkets(marketInfos);
-    
-    console.log(`Fetched ${krwMarkets.length} KRW markets`);
-    return krwMarkets;
-  } catch (error) {
-    console.error('Failed to fetch markets:', error);
-    // Fallback to popular coins
-    return [
-      "KRW-BTC", "KRW-ETH", "KRW-XRP", "KRW-SOL", "KRW-DOGE",
-      "KRW-ADA", "KRW-AVAX", "KRW-DOT", "KRW-LINK", "KRW-SHIB",
-    ];
+  let retries = 0;
+  while (true) {
+    try {
+      const response = await axios.get<UpbitMarket[]>(`${UPBIT_API_URL}/market/all`, { timeout: 5000 });
+      const krwMarkets = response.data
+        .filter(m => m.market.startsWith('KRW-'))
+        .map(m => m.market);
+      
+      if (krwMarkets.length === 0) {
+        throw new Error('No KRW markets found');
+      }
+
+      // Save to Redis
+      const marketInfos: MarketInfo[] = response.data
+        .filter(m => m.market.startsWith('KRW-'))
+        .map(m => ({
+          market: m.market,
+          korean_name: m.korean_name,
+          english_name: m.english_name,
+        }));
+      await setMarkets(marketInfos);
+      
+      console.log(`✅ Fetched ${krwMarkets.length} KRW markets`);
+      return krwMarkets;
+    } catch (error) {
+      retries++;
+      console.error(`Failed to fetch markets (Attempt ${retries}):`, error instanceof Error ? error.message : error);
+      // Wait 2 seconds before retrying
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
   }
 }
 
