@@ -39,7 +39,7 @@ spec:
               image: timescale/timescaledb:latest-pg17
               env:
                 - name: PGHOST
-                  value: "db-headless"
+                  value: "timescaledb-rw"
                 - name: PGUSER
                   value: "postgres"
                 - name: PGPASSWORD
