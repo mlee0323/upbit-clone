@@ -141,9 +141,9 @@ export async function connectUpbitWebSocket(): Promise<void> {
       const message = JSON.parse(data.toString());
 
       if (message.type === 'ticker') {
-        await handleTickerData(message as UpbitWSTickerData);
+        handleTickerData(message as UpbitWSTickerData);
       } else if (message.type === 'orderbook') {
-        await handleOrderbookData(message as UpbitWSOrderbookData);
+        handleOrderbookData(message as UpbitWSOrderbookData);
       }
     } catch (error) {
       // Ignore parsing errors
@@ -182,11 +182,11 @@ async function handleTickerData(data: UpbitWSTickerData): Promise<void> {
     timestamp: data.timestamp,
   };
 
-  // Save to Redis
-  await setTickers([ticker]);
-
-  // Redis Pub/Sub으로 다른 서버(API 서버)에 알림
+  // [최우선] Redis Pub/Sub으로 즉시 알림 (지연 최소화)
   pub.publish('ticker_updates', JSON.stringify(ticker));
+
+  // 나머지는 비동기로 처리 (기다리지 않음)
+  setTickers([ticker]).catch(() => {});
 
   // Also update in-memory store for order matching
   store.createTickerData({
@@ -205,10 +205,11 @@ async function handleOrderbookData(data: UpbitWSOrderbookData): Promise<void> {
     orderbook_units: data.orderbook_units.slice(0, 15),
   };
 
-  await setOrderbook(data.code, orderbook);
-  
-  // Redis Pub/Sub으로 다른 서버(API 서버)에 알림
+  // [최우선] Redis Pub/Sub으로 즉시 알림
   pub.publish('orderbook_updates', JSON.stringify({ market: data.code, data: orderbook }));
+
+  // 나머지는 비동기로 처리
+  setOrderbook(data.code, orderbook).catch(() => {});
 }
 
 // Update Upbit subscription with current markets

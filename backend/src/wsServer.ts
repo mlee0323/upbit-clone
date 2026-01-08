@@ -2,6 +2,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
 import { getAllTickers, getOrderbook, TickerData, sub, pub } from './redis.js';
+import store from './db.js';
 
 let wss: WebSocketServer | null = null;
 const clients = new Set<WebSocket>();
@@ -51,6 +52,14 @@ export function initWebSocketServer(server: Server): void {
       const data = JSON.parse(message);
       if (channel === 'ticker_updates') {
         broadcastTicker(data);
+        
+        // [추가] 로컬 스토어 업데이트 (주문 체결 엔진용)
+        store.createTickerData({
+          symbol: data.market,
+          currentPrice: data.trade_price,
+          changeRate: data.signed_change_rate * 100,
+          volume: data.acc_trade_volume_24h,
+        });
       } else if (channel === 'orderbook_updates') {
         broadcastOrderbook(data.market, data.data);
       }
