@@ -221,8 +221,8 @@ export function updateSubscription(): void {
 
   const subscribeMessage = JSON.stringify([
     { ticket: generateTicket() },
-    { type: 'ticker', codes: tickerMarkets, isOnlyRealtime: false },
-    { type: 'orderbook', codes: orderbookMarkets, isOnlyRealtime: false },
+    { type: 'ticker', codes: tickerMarkets, isOnlyRealtime: true },
+    { type: 'orderbook', codes: orderbookMarkets, isOnlyRealtime: true },
   ]);
 
   ws.send(subscribeMessage);
