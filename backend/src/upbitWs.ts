@@ -1,7 +1,7 @@
 // Upbit WebSocket client for real-time market data
 import WebSocket from 'ws';
 import axios from 'axios';
-import { setTickers, setOrderbook, setMarkets, TickerData, OrderbookData, MarketInfo } from './redis.js';
+import { setTickers, setOrderbook, setMarkets, TickerData, OrderbookData, MarketInfo, pub } from './redis.js';
 import { broadcastTicker, broadcastOrderbook } from './wsServer.js';
 import store from './db.js';
 
@@ -162,8 +162,11 @@ async function handleTickerData(data: UpbitWSTickerData): Promise<void> {
   // Save to Redis
   await setTickers([ticker]);
 
-  // Broadcast to frontend clients
+  // Broadcast to frontend clients (Local)
   broadcastTicker(ticker);
+
+  // [추가] Redis Pub/Sub으로 다른 서버에 알림
+  pub.publish('ticker_updates', JSON.stringify(ticker));
 
   // Also update in-memory store for order matching
   store.createTickerData({
@@ -184,8 +187,11 @@ async function handleOrderbookData(data: UpbitWSOrderbookData): Promise<void> {
 
   await setOrderbook(data.code, orderbook);
   
-  // Broadcast to frontend clients
+  // Broadcast to frontend clients (Local)
   broadcastOrderbook(data.code, orderbook);
+
+  // [추가] Redis Pub/Sub으로 다른 서버에 알림
+  pub.publish('orderbook_updates', JSON.stringify({ market: data.code, data: orderbook }));
 }
 
 // Update Upbit subscription with current markets

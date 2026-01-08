@@ -1,7 +1,7 @@
 // WebSocket server for broadcasting real-time data to frontend clients
 import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
-import { getAllTickers, getOrderbook, TickerData } from './redis.js';
+import { getAllTickers, getOrderbook, TickerData, sub } from './redis.js';
 import { subscribeToOrderbook } from './upbitWs.js';
 
 let wss: WebSocketServer | null = null;
@@ -39,6 +39,26 @@ export function initWebSocketServer(server: Server): void {
   });
 
   console.log('✅ WebSocket server initialized on /ws');
+
+  // [추가] Redis Pub/Sub 구독 설정
+  // 다른 서버(upbit-market)에서 보낸 데이터를 받아서 현재 서버에 연결된 클라이언트들에게 뿌려줍니다.
+  sub.subscribe('ticker_updates', 'orderbook_updates', (err) => {
+    if (err) console.error('Failed to subscribe to Redis channels:', err.message);
+    else console.log('✅ Subscribed to Redis ticker/orderbook updates');
+  });
+
+  sub.on('message', (channel, message) => {
+    try {
+      const data = JSON.parse(message);
+      if (channel === 'ticker_updates') {
+        broadcastTicker(data);
+      } else if (channel === 'orderbook_updates') {
+        broadcastOrderbook(data.market, data.data);
+      }
+    } catch (error) {
+      // Ignore parsing errors
+    }
+  });
 }
 
 // Send initial ticker data to new client

@@ -45,6 +45,18 @@ redis.connect().catch((err: Error) => {
   console.warn('Redis connection failed, running without cache:', err.message);
 });
 
+// [추가] Pub/Sub 전용 클라이언트 생성
+// Redis 클라이언트는 Pub/Sub 모드로 들어가면 다른 명령어를 쓸 수 없으므로 별도 생성이 필요합니다.
+const pub = redis.duplicate();
+const sub = redis.duplicate();
+
+pub.on('error', (err) => console.error('Redis Pub Error:', err.message));
+sub.on('error', (err) => console.error('Redis Sub Error:', err.message));
+
+// 연결 시도
+pub.connect().catch(() => {});
+sub.connect().catch(() => {});
+
 // ============ Ticker Methods ============
 
 export interface TickerData {
@@ -196,5 +208,5 @@ export async function getCandlesCache(key: string): Promise<any | null> {
 }
 
 // Export redis client for direct use if needed
-export { redis };
+export { redis, pub, sub };
 export default redis;
