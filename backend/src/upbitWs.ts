@@ -1,8 +1,7 @@
 // Upbit WebSocket client for real-time market data
 import WebSocket from 'ws';
 import axios from 'axios';
-import { setTickers, setOrderbook, setMarkets, TickerData, OrderbookData, MarketInfo, pub } from './redis.js';
-import { broadcastTicker, broadcastOrderbook } from './wsServer.js';
+import { setTickers, setOrderbook, setMarkets, TickerData, OrderbookData, MarketInfo, pub, sub } from './redis.js';
 import store from './db.js';
 
 const UPBIT_WS_URL = 'wss://api.upbit.com/websocket/v1';
@@ -87,10 +86,33 @@ async function fetchKRWMarkets(): Promise<string[]> {
   }
 }
 
+let isRedisSubInitialized = false;
+
 // Connect to Upbit WebSocket
 export async function connectUpbitWebSocket(): Promise<void> {
   // Fetch markets first
   KRW_MARKETS = await fetchKRWMarkets();
+
+  // [추가] 다른 서버(API 서버)로부터 구독 요청을 받음 (한 번만 설정)
+  if (!isRedisSubInitialized) {
+    sub.subscribe('subscription_requests', (err) => {
+      if (err) console.error('Failed to subscribe to subscription_requests:', err.message);
+      else console.log('✅ Subscribed to Redis subscription_requests');
+    });
+
+    sub.on('message', (channel, message) => {
+      if (channel === 'subscription_requests') {
+        try {
+          const { market } = JSON.parse(message);
+          if (market) {
+            console.log(`📥 Received subscription request for ${market}`);
+            subscribeToOrderbook(market);
+          }
+        } catch (e) {}
+      }
+    });
+    isRedisSubInitialized = true;
+  }
   
   if (ws && ws.readyState === WebSocket.OPEN) {
     console.log('WebSocket already connected');
@@ -112,6 +134,7 @@ export async function connectUpbitWebSocket(): Promise<void> {
       }
     }, 30000);
   });
+
 
   ws.on('message', async (data: Buffer) => {
     try {
@@ -162,10 +185,7 @@ async function handleTickerData(data: UpbitWSTickerData): Promise<void> {
   // Save to Redis
   await setTickers([ticker]);
 
-  // Broadcast to frontend clients (Local)
-  broadcastTicker(ticker);
-
-  // [추가] Redis Pub/Sub으로 다른 서버에 알림
+  // Redis Pub/Sub으로 다른 서버(API 서버)에 알림
   pub.publish('ticker_updates', JSON.stringify(ticker));
 
   // Also update in-memory store for order matching
@@ -187,10 +207,7 @@ async function handleOrderbookData(data: UpbitWSOrderbookData): Promise<void> {
 
   await setOrderbook(data.code, orderbook);
   
-  // Broadcast to frontend clients (Local)
-  broadcastOrderbook(data.code, orderbook);
-
-  // [추가] Redis Pub/Sub으로 다른 서버에 알림
+  // Redis Pub/Sub으로 다른 서버(API 서버)에 알림
   pub.publish('orderbook_updates', JSON.stringify({ market: data.code, data: orderbook }));
 }
 

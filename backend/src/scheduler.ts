@@ -1,7 +1,7 @@
 import cron from "node-cron";
 import axios from "axios";
 import store from "./db.js";
-import { setTickers, setMarkets, setOrderbook, TickerData, MarketInfo, OrderbookData } from "./redis.js";
+import { setTickers, setMarkets, setOrderbook, TickerData, MarketInfo, OrderbookData, pub } from "./redis.js";
 
 const UPBIT_API_BASE = process.env.UPBIT_API_URL || "https://api.upbit.com/v1";
 
@@ -81,6 +81,9 @@ const fetchAndStoreTickers = async (): Promise<void> => {
       }))
     );
 
+    // [추가] Redis Pub/Sub으로 다른 서버(API 서버)에 알림
+    tickerData.forEach(t => pub.publish('ticker_updates', JSON.stringify(t)));
+
     console.log(`[${new Date().toISOString()}] Redis: Stored ${tickerData.length} tickers`);
   } catch (error) {
     if (axios.isAxiosError(error)) {
@@ -128,6 +131,9 @@ const fetchAndStoreOrderbook = async (market: string): Promise<void> => {
       };
 
       await setOrderbook(market, orderbookData);
+
+      // [추가] Redis Pub/Sub으로 다른 서버(API 서버)에 알림
+      pub.publish('orderbook_updates', JSON.stringify({ market, data: orderbookData }));
     }
   } catch (error) {
     // Silent fail for orderbook

@@ -1,8 +1,7 @@
 // WebSocket server for broadcasting real-time data to frontend clients
 import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
-import { getAllTickers, getOrderbook, TickerData, sub } from './redis.js';
-import { subscribeToOrderbook } from './upbitWs.js';
+import { getAllTickers, getOrderbook, TickerData, sub, pub } from './redis.js';
 
 let wss: WebSocketServer | null = null;
 const clients = new Set<WebSocket>();
@@ -79,8 +78,8 @@ async function sendInitialData(ws: WebSocket): Promise<void> {
 // Handle messages from clients
 async function handleClientMessage(ws: WebSocket, message: any): Promise<void> {
   if (message.type === 'subscribe_orderbook' && message.market) {
-    // Ensure backend is subscribed to this market from Upbit
-    subscribeToOrderbook(message.market);
+    // [변경] 직접 호출 대신 Redis Pub/Sub으로 수집기(upbit-market)에 알림
+    pub.publish('subscription_requests', JSON.stringify({ market: message.market }));
 
     const orderbook = await getOrderbook(message.market);
     if (orderbook) {
