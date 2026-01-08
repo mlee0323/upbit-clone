@@ -29,7 +29,7 @@ metadata:
   name: db-backup
   namespace: database
 spec:
-  schedule: "0 18 * * *" # 매일 한국 시간 03:00 (UTC 18:00)
+  schedule: "0 3,18 * * *" # 매일 한국 시간 03:00, 12:00 (UTC 18:00, 03:00)
   jobTemplate:
     spec:
       template:

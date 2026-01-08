@@ -38,3 +38,10 @@ spec:
                 name: upbit-backend
                 port:
                   number: 3000
+          - path: /ws
+            pathType: Prefix
+            backend:
+              service:
+                name: upbit-backend
+                port:
+                  number: 3000
