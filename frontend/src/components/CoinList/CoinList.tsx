@@ -1,6 +1,8 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Star, ChevronUp, ChevronDown, RefreshCw } from 'lucide-react';
 import { CoinData } from '../../types';
+import { useAuth } from '../../contexts/AuthContext';
+import { fetchBalances } from '../../services/api';
 
 interface CoinListProps {
   coins: CoinData[];
@@ -27,6 +29,32 @@ export default function CoinList({ coins, selectedSymbol, onSelectCoin, isLoadin
   // Track price changes for highlight effect
   const [priceFlash, setPriceFlash] = useState<Record<string, 'up' | 'down' | null>>({});
   const prevPricesRef = useRef<Record<string, number>>({});
+  
+  const { isLoggedIn } = useAuth();
+  const [ownedSymbols, setOwnedSymbols] = useState<Set<string>>(new Set());
+
+  // Fetch balances when 'hold' tab is active
+  useEffect(() => {
+    if (activeTab === 'hold' && isLoggedIn) {
+      const token = localStorage.getItem('token');
+      if (token) {
+        fetchBalances(token)
+          .then((balances: any[]) => {
+            // Filter balances > 0 and map to symbols (e.g., KRW-BTC)
+            // Note: Balances API returns currency codes (BTC, ETH). 
+            // We need to match them with market codes (KRW-BTC, KRW-ETH).
+            // Assuming we only show KRW markets for now or match by currency.
+            const owned = new Set(
+              balances
+                .filter(b => parseFloat(b.balance) > 0 && b.currency !== 'KRW')
+                .map(b => `KRW-${b.currency}`) // Simple assumption: KRW markets
+            );
+            setOwnedSymbols(owned);
+          })
+          .catch(console.error);
+      }
+    }
+  }, [activeTab, isLoggedIn]);
 
   // Save favorites to localStorage
   useEffect(() => {
@@ -84,7 +112,7 @@ export default function CoinList({ coins, selectedSymbol, onSelectCoin, isLoadin
         return favorites.has(coin.symbol);
       }
       if (activeTab === 'hold') {
-        return false; // No holdings in demo
+        return ownedSymbols.has(coin.symbol);
       }
       if (activeTab === 'KRW') {
         return coin.symbol.startsWith('KRW-');
@@ -251,7 +279,7 @@ export default function CoinList({ coins, selectedSymbol, onSelectCoin, isLoadin
           </div>
         ) : filteredAndSortedCoins.length === 0 ? (
           <div className="flex items-center justify-center h-32 text-gray-400 text-sm">
-            {activeTab === 'hold' ? '보유한 코인이 없습니다' : 
+            {activeTab === 'hold' ? (isLoggedIn ? '보유한 코인이 없습니다' : '로그인이 필요합니다') : 
              activeTab === 'interest' ? '관심 코인이 없습니다' : 
              '검색 결과가 없습니다'}
           </div>

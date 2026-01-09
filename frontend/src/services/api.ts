@@ -23,3 +23,13 @@ export async function fetchSymbols() {
   }
   return response.json();
 }
+
+export async function fetchBalances(token: string) {
+  const response = await fetch(`${API_BASE_URL}/balance`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch balances: ${response.statusText}`);
+  }
+  return response.json();
+}
